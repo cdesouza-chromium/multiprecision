@@ -151,7 +151,7 @@ class cpp_bin_float
    }
    template <class Float>
    cpp_bin_float(const Float& f,
-                 typename std::enable_if<detail::is_cpp_bin_float_implicitly_constructible_from_type<Float, bit_count>::value>::type const* = nullptr)
+                 typename std::enable_if<detail::is_cpp_bin_float_implicitly_constructible_from_type<Float, static_cast<std::ptrdiff_t>(bit_count)>::value>::type const* = nullptr)
        : m_data(), m_exponent(0), m_sign(false)
    {
       this->assign_float(f);
@@ -159,7 +159,7 @@ class cpp_bin_float
 
    template <class Float>
    explicit cpp_bin_float(const Float& f,
-                          typename std::enable_if<detail::is_cpp_bin_float_explicitly_constructible_from_type<Float, bit_count>::value>::type const* = nullptr)
+                          typename std::enable_if<detail::is_cpp_bin_float_explicitly_constructible_from_type<Float, static_cast<std::ptrdiff_t>(bit_count)>::value>::type const* = nullptr)
        : m_data(), m_exponent(0), m_sign(false)
    {
       this->assign_float(f);
@@ -381,6 +381,8 @@ class cpp_bin_float
          m_sign     = (f < 0);
          m_exponent = exponent_infinity;
          return *this;
+      default:
+         break;
       }
       if (f < 0)
       {
@@ -635,36 +637,36 @@ inline void copy_and_round(cpp_bin_float<Digits, DigitBase, Allocator, Exponent,
       res.bits()     = static_cast<limb_type>(0u);
       return;
    }
-   std::ptrdiff_t msb = eval_msb(arg);
+   std::ptrdiff_t msb = static_cast<std::ptrdiff_t>(eval_msb(arg));
    if (static_cast<std::ptrdiff_t >(bits_to_keep) > msb + 1)
    {
       // Must have had cancellation in subtraction,
       // or be converting from a narrower type, so shift left:
       res.bits() = arg;
-      eval_left_shift(res.bits(), bits_to_keep - msb - 1);
+      eval_left_shift(res.bits(), static_cast<unsigned int>(bits_to_keep - msb - 1));
       res.exponent() -= static_cast<Exponent>(bits_to_keep - msb - 1);
    }
-   else if (static_cast<std::ptrdiff_t >(bits_to_keep) < msb + 1)
+   else if (static_cast<std::ptrdiff_t>(bits_to_keep) < msb + 1)
    {
       // We have more bits_to_keep than we need, so round as required,
       // first get the rounding bit:
-      bool roundup = eval_bit_test(arg, msb - bits_to_keep);
+      bool roundup = eval_bit_test(arg, static_cast<unsigned int>(msb - bits_to_keep));
       // Then check for a tie:
-      if (roundup && (msb - bits_to_keep == (std::ptrdiff_t )eval_lsb(arg)))
+      if (roundup && (msb - bits_to_keep == static_cast<std::ptrdiff_t>(eval_lsb(arg))))
       {
          // Ties round towards even:
-         if (!eval_bit_test(arg, msb - bits_to_keep + 1))
+         if (!eval_bit_test(arg, static_cast<unsigned int>(msb - bits_to_keep + 1)))
             roundup = false;
       }
       // Shift off the bits_to_keep we don't need:
-      eval_right_shift(arg, msb - bits_to_keep + 1);
+      eval_right_shift(arg, static_cast<unsigned int>(msb - bits_to_keep + 1));
       res.exponent() += static_cast<Exponent>(msb - bits_to_keep + 1);
       if (roundup)
       {
          eval_increment(arg);
          if (bits_to_keep)
          {
-            if (eval_bit_test(arg, bits_to_keep))
+            if (eval_bit_test(arg, static_cast<unsigned int>(bits_to_keep)))
             {
                // This happens very very rairly, all the bits left after
                // truncation must be 1's and we're rounding up an order of magnitude:
@@ -683,8 +685,8 @@ inline void copy_and_round(cpp_bin_float<Digits, DigitBase, Allocator, Exponent,
       {
          // Normalize result when we're rounding to fewer bits than we can hold, only happens in conversions
          // to narrower types:
-         eval_left_shift(arg, cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count - bits_to_keep);
-         res.exponent() -= static_cast<Exponent>(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count - bits_to_keep);
+         eval_left_shift(arg, static_cast<unsigned int>(static_cast<std::ptrdiff_t>(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count) - bits_to_keep));
+         res.exponent() -= static_cast<Exponent>(static_cast<std::ptrdiff_t>(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count) - bits_to_keep);
       }
       res.bits() = arg;
    }
@@ -754,6 +756,8 @@ inline void do_eval_add(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Mi
    case cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::exponent_nan:
       res = a;
       return; // result is still a NaN.
+   default:
+      break;
    }
    switch (b.exponent())
    {
@@ -768,13 +772,15 @@ inline void do_eval_add(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Mi
    case BinFloat3::exponent_nan:
       res = b;
       return; // result is a NaN.
+   default:
+      break;
    }
 
    static_assert((std::numeric_limits<exponent_type>::max)() - cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count > cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::max_exponent, "Exponent range check failed");
 
    bool s = a.sign();
    dt     = a.bits();
-   if (a.exponent() > (std::ptrdiff_t )cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count + b.exponent())
+   if (a.exponent() > static_cast<exponent_type>(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count) + b.exponent())
    {
       res.exponent() = a.exponent();
    }
@@ -782,7 +788,7 @@ inline void do_eval_add(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Mi
    {
       exponent_type e_diff = a.exponent() - b.exponent();
       BOOST_MP_ASSERT(e_diff >= 0);
-      eval_left_shift(dt, e_diff);
+      eval_left_shift(dt, static_cast<unsigned int>(e_diff));
       res.exponent() = a.exponent() - e_diff;
       eval_add(dt, b.bits());
    }
@@ -827,6 +833,8 @@ inline void do_eval_subtract(BinFloat1& res, const BinFloat2& a, const BinFloat3
    case BinFloat2::exponent_nan:
       res = a;
       return; // result is still a NaN.
+   default:
+      break;
    }
    switch (b.exponent())
    {
@@ -841,6 +849,8 @@ inline void do_eval_subtract(BinFloat1& res, const BinFloat2& a, const BinFloat3
    case BinFloat3::exponent_nan:
       res = b;
       return; // result is still a NaN.
+   default:
+      break;
    }
 
    bool s = a.sign();
@@ -850,7 +860,7 @@ inline void do_eval_subtract(BinFloat1& res, const BinFloat2& a, const BinFloat3
       if (a.exponent() <= (std::ptrdiff_t )BinFloat1::bit_count + b.exponent())
       {
          typename BinFloat1::exponent_type e_diff = a.exponent() - b.exponent();
-         eval_left_shift(dt, e_diff);
+         eval_left_shift(dt, static_cast<unsigned int>(e_diff));
          res.exponent() = a.exponent() - e_diff;
          eval_subtract(dt, b.bits());
       }
@@ -875,7 +885,7 @@ inline void do_eval_subtract(BinFloat1& res, const BinFloat2& a, const BinFloat3
       if (b.exponent() <= (std::ptrdiff_t )BinFloat1::bit_count + a.exponent())
       {
          typename BinFloat1::exponent_type e_diff = a.exponent() - b.exponent();
-         eval_left_shift(dt, -e_diff);
+         eval_left_shift(dt, static_cast<unsigned int>(-e_diff));
          res.exponent() = b.exponent() + e_diff;
          eval_subtract(dt, a.bits());
       }
@@ -992,6 +1002,8 @@ inline void eval_multiply(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, 
    case cpp_bin_float<Digits, DigitBase, Allocator2, Exponent2, MinE2, MaxE2>::exponent_nan:
       res = a;
       return;
+   default:
+      break;
    }
    if (b.exponent() > cpp_bin_float<Digits, DigitBase, Allocator3, Exponent3, MinE3, MaxE3>::max_exponent)
    {
@@ -1068,6 +1080,8 @@ inline typename std::enable_if<boost::multiprecision::detail::is_unsigned<U>::va
    case cpp_bin_float<Digits, DigitBase, Allocator2, Exponent2, MinE2, MaxE2>::exponent_nan:
       res = a;
       return;
+   default:
+      break;
    }
 
    typename cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::double_rep_type                                                                     dt;
@@ -1132,6 +1146,8 @@ inline void eval_divide(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Mi
       case cpp_bin_float<Digits, DigitBase, Allocator3, Exponent3, MinE3, MaxE3>::exponent_nan:
          res = std::numeric_limits<number<cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE> > >::quiet_NaN().backend();
          return;
+      default:
+         break;
       }
       bool s     = u.sign() != v.sign();
       res        = u;
@@ -1146,6 +1162,8 @@ inline void eval_divide(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Mi
       case cpp_bin_float<Digits, DigitBase, Allocator3, Exponent3, MinE3, MaxE3>::exponent_nan:
          res = std::numeric_limits<number<cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE> > >::quiet_NaN().backend();
          return;
+      default:
+         break;
       }
       bool s     = u.sign() != v.sign();
       res        = u;
@@ -1155,6 +1173,8 @@ inline void eval_divide(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Mi
    case cpp_bin_float<Digits, DigitBase, Allocator2, Exponent2, MinE2, MaxE2>::exponent_nan:
       res = std::numeric_limits<number<cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE> > >::quiet_NaN().backend();
       return;
+   default:
+      break;
    }
    switch (v.exponent())
    {
@@ -1173,6 +1193,8 @@ inline void eval_divide(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Mi
    case cpp_bin_float<Digits, DigitBase, Allocator3, Exponent3, MinE3, MaxE3>::exponent_nan:
       res = std::numeric_limits<number<cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE> > >::quiet_NaN().backend();
       return;
+   default:
+      break;
    }
 
    // We can scale u and v so that both are integers, then perform integer
@@ -1255,7 +1277,7 @@ inline void eval_divide(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Mi
       BOOST_MP_ASSERT((eval_msb(q) == cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count - 1));
       constexpr const unsigned lshift = (cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count < limb_bits) ? 2 : limb_bits;
       eval_left_shift(q, lshift);
-      res.exponent() -= lshift;
+      res.exponent() -= static_cast<Exponent>(lshift);
       eval_left_shift(r, 1u);
       int c = r.compare(v.bits());
       if (c == 0)
@@ -1315,6 +1337,8 @@ inline typename std::enable_if<boost::multiprecision::detail::is_unsigned<U>::va
    case cpp_bin_float<Digits, DigitBase, Allocator2, Exponent2, MinE2, MaxE2>::exponent_nan:
       res = std::numeric_limits<number<cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE> > >::quiet_NaN().backend();
       return;
+   default:
+      break;
    }
    if (v == 0)
    {
@@ -1339,14 +1363,14 @@ inline typename std::enable_if<boost::multiprecision::detail::is_unsigned<U>::va
    //
    // We can set the exponent and sign of the result up front:
    //
-   std::ptrdiff_t  gb         = msb(v);
+   std::ptrdiff_t  gb         = static_cast<std::ptrdiff_t>(msb(v));
    res.exponent() = u.exponent() - static_cast<Exponent>(gb) - static_cast<Exponent>(1);
    res.sign()     = u.sign();
    //
    // Now get the quotient and remainder:
    //
    typename cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::double_rep_type t(u.bits()), q, r;
-   eval_left_shift(t, gb + 1);
+   eval_left_shift(t, static_cast<unsigned int>(gb + 1));
    eval_qr(t, number<typename cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::double_rep_type>::canonical_value(v), q, r);
    //
    // We now have either "cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count" or "cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count+1" significant cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count in q.
@@ -1377,7 +1401,7 @@ inline typename std::enable_if<boost::multiprecision::detail::is_unsigned<U>::va
       BOOST_MP_ASSERT((eval_msb(q) == cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count - 1));
       constexpr const unsigned lshift = cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count < limb_bits ? 2 : limb_bits;
       eval_left_shift(q, lshift);
-      res.exponent() -= lshift;
+      res.exponent() -= static_cast<typename cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::exponent_type>(lshift);
       eval_left_shift(r, 1u);
       int c = r.compare(number<typename cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::double_rep_type>::canonical_value(v));
       if (c == 0)
@@ -1623,6 +1647,8 @@ inline void eval_frexp(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Min
       *e  = 0;
       res = arg;
       return;
+   default:
+      break;
    }
    res            = arg;
    *e             = arg.exponent() + 1;
@@ -1651,6 +1677,8 @@ inline void eval_ldexp(cpp_bin_float<Digits, DigitBase, Allocator, Exponent, Min
    case cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::exponent_infinity:
       res = arg;
       return;
+   default:
+      break;
    }
    if ((e > 0) && (cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::max_exponent - e < arg.exponent()))
    {
@@ -1736,6 +1764,8 @@ inline int eval_fpclassify(const cpp_bin_float<Digits, DigitBase, Allocator, Exp
       return FP_INFINITE;
    case cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::exponent_nan:
       return FP_NAN;
+   default:
+      break;
    }
    return FP_NORMAL;
 }
@@ -2035,9 +2065,9 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::cpp_bi
       return -(max)();
    }
    static constexpr int digits   = boost::multiprecision::cpp_bin_float<Digits, DigitBase, Allocator, Exponent, MinE, MaxE>::bit_count;
-   static constexpr int digits10 = boost::multiprecision::detail::calc_digits10<digits>::value;
+   static constexpr int digits10 = boost::multiprecision::detail::calc_digits10<static_cast<unsigned>(digits)>::value;
    // Is this really correct???
-   static constexpr int  max_digits10 = boost::multiprecision::detail::calc_max_digits10<digits>::value;
+   static constexpr int  max_digits10 = boost::multiprecision::detail::calc_max_digits10<static_cast<unsigned>(digits)>::value;
    static constexpr bool is_signed    = true;
    static constexpr bool is_integer   = false;
    static constexpr bool is_exact     = false;

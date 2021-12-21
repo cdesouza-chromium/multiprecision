@@ -185,8 +185,8 @@ class numeric_limits<boost::multiprecision::number<boost::multiprecision::cpp_in
    }
    static BOOST_CXX14_CONSTEXPR_IF_DETECTION number_type          lowest() { return (min)(); }
    static constexpr int digits       = boost::multiprecision::backends::max_precision<backend_type>::value == SIZE_MAX ? INT_MAX : boost::multiprecision::backends::max_precision<backend_type>::value;
-   static constexpr int digits10     = boost::multiprecision::detail::calc_digits10_s<digits>::value;
-   static constexpr int max_digits10 = boost::multiprecision::detail::calc_max_digits10_s<digits>::value;
+   static constexpr int digits10     = boost::multiprecision::detail::calc_digits10_s<static_cast<std::size_t>(digits)>::value;
+   static constexpr int max_digits10 = boost::multiprecision::detail::calc_max_digits10_s<static_cast<std::size_t>(digits)>::value;
    static constexpr bool is_signed    = boost::multiprecision::is_signed_number<backend_type>::value;
    static constexpr bool is_integer   = true;
    static constexpr bool is_exact     = true;
