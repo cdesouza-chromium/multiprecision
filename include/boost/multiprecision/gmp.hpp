@@ -506,13 +506,19 @@ class gmp_char_ptr
 {
 private:
    char* ptr_val;
+   void* (*alloc_func_ptr)(size_t);
+   void* (*realloc_func_ptr)(void*, size_t, size_t);
+   void  (*free_func_ptr)(void*, size_t);
 
 public:
    gmp_char_ptr() = delete;
-   explicit gmp_char_ptr(char* val_) : ptr_val {val_} {}
+   explicit gmp_char_ptr(char* val_) : ptr_val {val_}
+   {
+      mp_get_memory_functions(&alloc_func_ptr, &realloc_func_ptr, &free_func_ptr);
+   }
    ~gmp_char_ptr() noexcept 
-   { 
-      free(ptr_val); 
+   {
+      (*free_func_ptr)((void*)ptr_val, sizeof(*ptr_val));
       ptr_val = nullptr;
    }
    inline char* get() noexcept { return ptr_val; }
@@ -3696,7 +3702,9 @@ namespace Eigen
          IsSigned = std::numeric_limits<self_type>::is_specialized ? std::numeric_limits<self_type>::is_signed : true,
          RequireInitialization = 1,
       };
-      static constexpr Real epsilon() noexcept
+
+      #if !defined(BOOST_MP_STANDALONE) || defined(BOOST_MATH_STANDALONE)
+      static Real epsilon()
       {
          return std::numeric_limits<Real>::epsilon();
       }
@@ -3712,14 +3720,15 @@ namespace Eigen
       {
          return (std::numeric_limits<Real>::min)();
       }
+      static int digits()
+      {
+         return boost::math::tools::digits<Real>();
+      }
+      #endif // Standalone config options
+
       static int digits10()
       {
          return Real::thread_default_precision();
-      }
-      static constexpr int digits() noexcept
-      {
-         static_assert(std::numeric_limits<Real>::radix == 2 || std::numeric_limits<Real>::radix == 10, "Type Real must have a radix of 2 or 10");
-         return std::numeric_limits<Real>::radix == 2 ? std::numeric_limits<Real>::digits : ((std::numeric_limits<Real>::digits + 1) * 1000L) / 301L;
       }
       static constexpr long min_exponent() noexcept
       {
