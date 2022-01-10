@@ -29,40 +29,40 @@ struct make_signed : public std::make_signed<T> {};
 #ifdef BOOST_HAS_INT128
 
 template <>
-struct is_signed<boost::multiprecision::int128_type> : public std::true_type {};
+struct is_signed<int128_type> : public std::integral_constant<bool, true> {};
 template <>
-struct is_signed<boost::multiprecision::uint128_type> : public std::false_type {};
+struct is_signed<uint128_type> : public std::integral_constant<bool, false> {};
 template <>
-struct is_unsigned<boost::multiprecision::int128_type> : public std::false_type {};
+struct is_unsigned<int128_type> : public std::integral_constant<bool, false> {};
 template <>
-struct is_unsigned<boost::multiprecision::uint128_type> : public std::true_type {};
+struct is_unsigned<uint128_type> : public std::integral_constant<bool, true> {};
 template <>
-struct is_integral<boost::multiprecision::int128_type> : public std::true_type {};
+struct is_integral<int128_type> : public std::integral_constant<bool, true> {};
 template <>
-struct is_integral<boost::multiprecision::uint128_type> : public std::true_type {};
+struct is_integral<uint128_type> : public std::integral_constant<bool, true> {};
 template <>
-struct is_arithmetic<boost::multiprecision::int128_type> : public std::true_type {};
+struct is_arithmetic<int128_type> : public std::integral_constant<bool, true> {};
 template <>
-struct is_arithmetic<boost::multiprecision::uint128_type> : public std::true_type {};
+struct is_arithmetic<uint128_type> : public std::integral_constant<bool, true> {};
 template <>
-struct make_unsigned<boost::multiprecision::int128_type>
+struct make_unsigned<int128_type>
 {
-   using type = boost::multiprecision::uint128_type;
+   using type = uint128_type;
 };
 template <>
-struct make_unsigned<boost::multiprecision::uint128_type>
+struct make_unsigned<uint128_type>
 {
-   using type = boost::multiprecision::uint128_type;
+   using type = uint128_type;
 };
 template <>
-struct make_signed<boost::multiprecision::int128_type>
+struct make_signed<int128_type>
 {
-   using type = boost::multiprecision::int128_type;
+   using type = int128_type;
 };
 template <>
-struct make_signed<boost::multiprecision::uint128_type>
+struct make_signed<uint128_type>
 {
-   using type = boost::multiprecision::int128_type;
+   using type = int128_type;
 };
 
 #endif

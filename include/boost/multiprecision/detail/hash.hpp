@@ -21,11 +21,11 @@ inline std::size_t hash_value(const T& v)
 
 #if defined(BOOST_HAS_INT128)
 
-std::size_t hash_value(const boost::multiprecision::uint128_type& val);
+std::size_t hash_value(const uint128_type& val);
 
-inline std::size_t hash_value(const boost::multiprecision::int128_type& val)
+inline std::size_t hash_value(const int128_type& val)
 {
-   return hash_value(static_cast<boost::multiprecision::uint128_type>(val));
+   return hash_value(static_cast<uint128_type>(val));
 }
 
 #endif
@@ -42,7 +42,7 @@ inline void hash_combine(std::size_t& seed, const T& v, Args... args)
 
 #if defined(BOOST_HAS_INT128)
 
-inline std::size_t hash_value(const boost::multiprecision::uint128_type& val)
+inline std::size_t hash_value(const uint128_type& val)
 {
    std::size_t result = static_cast<std::size_t>(val);
    hash_combine(result, static_cast<std::size_t>(val >> 64));

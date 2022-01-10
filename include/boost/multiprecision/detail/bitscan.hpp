@@ -172,8 +172,6 @@ BOOST_FORCEINLINE std::size_t find_msb(unsigned long long mask, std::integral_co
 }
 #ifdef BOOST_HAS_INT128
 
-using uint128_type = boost::multiprecision::uint128_type;
-
 BOOST_FORCEINLINE std::size_t find_msb(uint128_type mask, std::integral_constant<int, 0> const&)
 {
    union
